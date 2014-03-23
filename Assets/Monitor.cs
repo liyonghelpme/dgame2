@@ -31,8 +31,8 @@ public class Monitor : Orbit {
 			gameObject.transform.LookAt(p.transform.position);
 			RaycastHit hit;
 			if(Physics.Linecast(transform.position, p.transform.position, out hit)) {
-				Debug.Log("hitObject "+hit.collider.gameObject.name);
-				if(hit.collider.gameObject != p.gameObject) {
+				//Debug.Log("hitObject "+hit.collider.gameObject.name);
+				if(hit.collider.gameObject != p.gameObject && hit.collider.gameObject.tag == "Untagged") {
 					if(Mathf.Abs(Data.Azimuth-tarZen) < 0.1f) {
 						tNum++;
 						tNum %= 4;
@@ -40,9 +40,10 @@ public class Monitor : Orbit {
 					}
 				}
 			}
-			Debug.Log("tarZen " +tarZen.ToString());
+
+			//Debug.Log("tarZen " +tarZen.ToString());
 			//if(tarZen != Data.Azimuth) {
-			Data.Azimuth = Mathf.Lerp(Data.Azimuth, tarZen, Time.deltaTime*1);
+			Data.Azimuth = Mathf.Lerp(Data.Azimuth, tarZen, Time.deltaTime*0.5f);
 			//}
 		}
 	}
