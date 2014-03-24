@@ -2,13 +2,17 @@
 using System.Collections;
 
 public class MyStatus : MonoBehaviour {
-	public int HP = 16;
-	public int SP = 18;
-
-	public int HPmax = 16;
-	public int SPmax = 18;
-
+	[HideInInspector]
+	public int HP = 100;
+	[HideInInspector]
+	public int SP = 100;
+	[HideInInspector]
+	public int HPmax = 100;
+	[HideInInspector]
+	public int SPmax = 100;
+	[HideInInspector]
 	public int Damage = 2;
+	[HideInInspector]
 	public int Defend = 0;
 
 	private GameObject killer;
@@ -22,13 +26,28 @@ public class MyStatus : MonoBehaviour {
 	public bool disappear = true;
 
 	private int EXPgive = 2;
-	int EXP = 0;
-	int EXPmax = 2;
-	int LEVEL = 1;
+	[HideInInspector]
+	public int EXP = 0;
+	[HideInInspector]
+	public int EXPmax = 2;
+
+	[HideInInspector]
+	public int LEVEL = 1;
 
 	int STR = 2;
 	int AGI = 2;
 	int INT = 2;
+
+	int HPregen = 1;
+	int SPregen = 1;
+	int BaseHPmax = 16;
+	int BaseSPmax = 18;
+	int BaseDamage = 1;
+	int BaseDefend = 0;
+
+	public GameObject FloatingText;
+
+	float lastRegen = 0;
 
 	public GameObject LevelUpFx;
 
@@ -36,6 +55,12 @@ public class MyStatus : MonoBehaviour {
 	[HideInInspector]
 	public float frozeTime = 0;
 	bool hited = false;
+	public AudioClip hitSound;
+	// Use this for initialization
+	void Start () {
+		HP = 100;
+		SP = 100;
+	}
 
 	void GotHit(float t){
 		if(!isHero) {
@@ -52,6 +77,9 @@ public class MyStatus : MonoBehaviour {
 		if(HP < 0)
 			return 0;
 		GotHit(0.5f);
+		if(hitSound){
+			AudioSource.PlayClipAtPoint(hitSound, transform.position);
+		}
 
 		//TODO: GotHit
 		var damval = damage-Defend;
@@ -101,14 +129,23 @@ public class MyStatus : MonoBehaviour {
 			LevelUp();
 		}
 	}
+	public void SetLevel(int l) {
+		while(LEVEL < l) {
+			LevelUp();
+		}
+	}
+
 	//TODO: damage reculate
 	void LevelUp(){
+		HP = HPmax;
 		EXP -= EXPmax;
 		EXPmax += 50;
 		LEVEL++;
 		STR++;
 		AGI++;
 		INT++;
+		//level Up add More Exp
+		EXPgive += 10;
 
 		if(LevelUpFx) {
 			GameObject lup = (GameObject)Instantiate(LevelUpFx, transform.position, Quaternion.identity);
@@ -123,7 +160,13 @@ public class MyStatus : MonoBehaviour {
 
 	//TODO: float Text and particle effect
 	public void AddFloaingText(Vector3 pos, string t) {
-
+		if(FloatingText) {
+			var floatText = (GameObject)Instantiate(FloatingText, pos, transform.rotation);
+			if(floatText.GetComponent<FloatingText>()){
+				floatText.GetComponent<FloatingText>().Text = t;
+			}
+			GameObject.Destroy(floatText, 1);
+		}
 	}
 	public void AddParticle(Vector3 pos) {
 		if(ParticleObject) {
@@ -131,13 +174,27 @@ public class MyStatus : MonoBehaviour {
 			GameObject.Destroy(bloodEffect, 1);
 		}
 	}
-	// Use this for initialization
-	void Start () {
-	
-	}
+
 	
 	// Update is called once per frame
 	void Update () {
+		if(Time.time-lastRegen > 1) {
+			lastRegen = Time.time;
+			HP += HPregen;
+			SP += SPregen;
+		}
+		SPmax = BaseSPmax+(INT*3);
+		HPmax = BaseHPmax+(STR*5);
+		HPregen = Mathf.Max(1, (int)(HPmax/15));
+		SPregen = Mathf.Max(1, (int)(SPmax/15));
+		if(HP > HPmax)
+			HP = HPmax;
+		if(SP > SPmax)
+			SP = SPmax;
+		Damage = (STR*2)+BaseDamage;
+		Defend = BaseDefend;
+
+
 		if(hited) {
 			if(frozeTime > 0){
 				frozeTime -= Time.deltaTime;

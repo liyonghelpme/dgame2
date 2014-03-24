@@ -30,6 +30,9 @@ public class MyHero : MonoBehaviour {
 
 	private bool diddamage = false;
 
+	public AudioClip []attackSound;
+
+
 	HashSet<GameObject> listedHit = new HashSet<GameObject>();
 	// Use this for initialization
 	void Start () {
@@ -139,6 +142,10 @@ public class MyHero : MonoBehaviour {
 				int damageCal = (int)Random.Range(damage/2.0f, damage)+1;
 				var status = hit.gameObject.GetComponent<MyStatus>();
 				int takedamage = status.ApplyDamage(damageCal, dirforce, gameObject);
+				if(attackSound.Length > 0){
+					int rd = Random.Range(0, attackSound.Length);
+					AudioSource.PlayClipAtPoint(attackSound[rd], transform.position);
+				}
 
 				status.AddParticle(hit.transform.position+Vector3.up);
 				//listObjHitted.Add(hit.gameObject);
@@ -196,13 +203,23 @@ public class MyHero : MonoBehaviour {
 				Debug.Log("ray cast pos "+tarPos.ToString()+" "+dist.ToString());
 			}
 
+
+			/*
+			RaycastHit hit;
+			if(Physics.Raycast(ray, out hit, 100)){
+				tarPos = hit.point;
+			}
+			*/
+		}
+
+		if(!attacking && !animation[aniName].enabled) {
 			bool findAttack = false;
 			var colliders = Physics.OverlapSphere(this.transform.position, 2);
 			foreach(var hit in colliders){
 				if(!hit || hit.gameObject == this.gameObject || hit.gameObject.tag == "Untagged")
 					continue;
 				//if enemy dead don't care
-
+				
 				//judge whether direction has enemy no enemy just dont attack		
 				var dir = (hit.transform.position-transform.position).normalized;
 				var td = Vector3.Dot(dir, transform.forward);
@@ -217,14 +234,9 @@ public class MyHero : MonoBehaviour {
 			if(!findAttack) {
 				attackStack = 0;
 			}
-			/*
-			RaycastHit hit;
-			if(Physics.Raycast(ray, out hit, 100)){
-				tarPos = hit.point;
-			}
-			*/
 		}
-		Debug.Log("tarPos "+tarPos.ToString()+" "+transform.position.ToString());
+
+		//Debug.Log("tarPos "+tarPos.ToString()+" "+transform.position.ToString());
 		var py = tarPos;
 		py.y = transform.position.y;
 		direction = py - transform.position;

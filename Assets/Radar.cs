@@ -48,8 +48,27 @@ public class Radar : MonoBehaviour {
 			GUI.color = Color.white;
 		}
 	}
+	void drawEnemy() {
+		var enemy = GameObject.FindGameObjectsWithTag("Enemy");
+		foreach(var e in enemy) {
+			Vector3 dir = e.transform.position-player.transform.position;
+			dir.y = 0;
+			if(dir.sqrMagnitude < distance*distance) {
+				float dist = dir.magnitude;
+				dir.Normalize();
+				float angle = Vector3.Angle(Vector3.forward, dir);
+				float ad = AngleDir(Vector3.forward, dir, Vector3.up);
+				angle *= ad;
+				Vector3 rd = dist/distance*75*dir;
+				GUI.color = Color.red;
+				GUI.DrawTexture(new Rect(75+rd.x-ene.width/2, 75-rd.z-ene.height/2, ene.width, ene.height), ene);
+				GUI.color = Color.white;
+			}
+		}
+	}
 	void OnGUI() {
 		var scale = 150f/bg.width;
+		drawEnemy();
 		if(allGod != null) {
 			for(var i = 0; i < allGod.Length; i++){
 				drawGod(allGod[i]);

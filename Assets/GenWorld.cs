@@ -10,8 +10,9 @@ public class GenWorld : MonoBehaviour {
 	public GameObject levelEdge;
 
 	private int[] map;
-	private int Width = 4;
-	private int Height = 4;
+	[HideInInspector]
+	public int Width = 8;
+	private int Height = 8;
 	public bool isFinish = false;
 
 	public GameObject disc;
@@ -30,15 +31,22 @@ public class GenWorld : MonoBehaviour {
 	public bool start = true;
 	public GameObject zombies;
 
-	private int eneCount = 10;
+	private int eneCount = 20;
 	private float timeStamp = 0;
 	private float timeSpawn = 3;
+	public AdMobPlugin ad;
+	private bool showAdYet = false;
+	private bool overShowAd = false;
+	public Texture2D wb;
+	bool hideYet = false;
 	//     2 
 	// 4        1
 	//     8
 	// Use this for initialization
 	void Start () {
-		Random.seed = 1;
+		//Random.seed = (int)(Time.time*10);
+		//ad.Hide();
+
 		map = new int[Width*Height];
 		map[0] = 3;
 		Debug.Log("le "+map.Length.ToString());
@@ -169,28 +177,73 @@ public class GenWorld : MonoBehaviour {
 			Debug.Log("God not ok");
 		}
 	}
+	void showContent() {
+	}
 	void OnGUI(){
 		if(skin)
 			GUI.skin = skin;
 		if(start) {
+			if(!showAdYet) {
+				showAdYet = true;
+				ad.Show();
+			}
+
+			//ad.Show();
 			//GUI.skin.box.normal.textColor = new Color(0.8f, 0.8f, 0.8f);
 			//GUI.skin.box.
-
+			//GUI.Window(1, new Rect(Screen.width/4, Screen.height/2-100, Screen.width/2, 80), showContent, );
+			GUI.DrawTexture(new Rect(Screen.width/4, Screen.height/2-100, Screen.width/2, 80), wb, ScaleMode.ScaleAndCrop);
+			GUI.color = Color.black;
 			GUI.Box(new Rect(Screen.width/4, Screen.height/2-100, Screen.width/2, 80), "You need to put Eight God in different Row, column and slash. Do your best!", "mybox");
+			GUI.color = Color.white;
 			if(GUI.Button(new Rect(Screen.width/2-80, Screen.height/2, 160, 80), "Start")) {
 				start = false;
+				ad.Hide();
 			}
 			return;
 		}
 
-		if(!over){
+		if(player.GetComponent<MyStatus>().isDead) {
+			if(!overShowAd) {
+				overShowAd = true;
+				ad.Show();
+			}
+			GUI.skin.button.alignment = TextAnchor.UpperCenter;
+			GUI.skin.button.fontSize = 50;
+			if(GUI.Button(new Rect(Screen.width/2-80, Screen.height/2, 160, 80), "Resume")) {
+				ad.Hide();
+
+				//overShowAd = false;
+				//showAdYet = false;
+				Application.LoadLevel("test2");
+				return;
+			}
+			GUI.DrawTexture(new Rect(Screen.width/4, Screen.height/2-100, Screen.width/2, 80), tb, ScaleMode.ScaleToFit);
+			GUI.skin.label.normal.background = null;
+			GUI.skin.label.fontSize = 50;
+			GUI.skin.label.alignment = TextAnchor.MiddleCenter;
+			GUI.skin.label.normal.textColor = Color.white;
+			
+			GUI.Label(new Rect(Screen.width/4, Screen.height/2-100, Screen.width/2, 80), "You Dead!");
 			return;
 		}
 
+		if(!over){
+			if(ad.IsVisible()) {
+				ad.Hide();
+				//hideYet = true;
+			}
+			return;
+		}
+		if(!overShowAd) {
+			overShowAd = true;
+			ad.Show();
+		}
 		GUI.skin.button.alignment = TextAnchor.UpperCenter;
 		GUI.skin.button.fontSize = 50;
 		if(GUI.Button(new Rect(Screen.width/2-80, Screen.height/2, 160, 80), "Resume")) {
 			Application.LoadLevel("test2");
+			ad.Hide();
 			return;
 		}
 		//GUI.skin.box.normal.background = GUI.
@@ -255,11 +308,18 @@ public class GenWorld : MonoBehaviour {
 		gg = new MyGod[Width];
 
 		for(var i = 0; i < Width; i++) {
-			var g = (GameObject)Instantiate(god, new Vector3(i*10*2, 0, i*10*2), Quaternion.identity);
+			Vector3 pos = new Vector3(i*10*2, 0, i*10*2);
+			if(i == 0) {
+				pos = new Vector3(0, 1, -1);
+			}
+			var g = (GameObject)Instantiate(god, pos, Quaternion.identity);
 			g.SetActive(true);
 			//allGod[i] =g;
 			gg[i] = g.GetComponent<MyGod>();
+			//god Id
+			gg[i].myId = i+1;
 		}
+
 
 
 		/*
@@ -354,7 +414,7 @@ public class GenWorld : MonoBehaviour {
 					var gc = (GameObject)Instantiate(courner1C, new Vector3(10*i*2, 0, 10*j*2), Quaternion.AngleAxis(0, Vector3.up));
 					gc.SetActive(true);
 				} else if(vv == 13) {
-					var gc = (GameObject)Instantiate(courner1B, new Vector3(10*i*2, 0, 10*j*2), Quaternion.AngleAxis(90, Vector3.up));
+					var gc = (GameObject)Instantiate(courner1B, new Vector3(10*i*2, 0, 10*j*2), Quaternion.AngleAxis(-90, Vector3.up));
 					gc.SetActive(true);
 				} else if(vv == 14) {
 					var gc = (GameObject)Instantiate(courner1B, new Vector3(10*i*2, 0, 10*j*2), Quaternion.AngleAxis(0, Vector3.up));
@@ -449,15 +509,24 @@ public class GenWorld : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
+		if(start)
+			return;
+
 		var gos = GameObject.FindGameObjectsWithTag("Enemy");
 		if(gos.Length < eneCount && Time.time > timeStamp+timeSpawn){
+			var pp = player.transform.position;
+			var pcol = Mathf.FloorToInt(pp.x/10);
+			var prow = Mathf.FloorToInt(pp.z/10);
+
+
 			timeStamp = Time.time;
-			var row = Random.Range(0, Width);
-			var col = Random.Range(0, Height);
+			var row = Random.Range(Mathf.Max(0, pcol-3), Mathf.Min(Width, pcol+3));
+			var col = Random.Range(Mathf.Max(0, prow-3), Mathf.Min(Height, prow+3));
 			Vector3 v = new Vector3(row*10*2, 1, col*10*2);
 			//room exist but long path perhaps not exist
 			var z = (GameObject)GameObject.Instantiate(zombies, v, Quaternion.identity);
 			z.SetActive(true);
+			z.GetComponent<MyStatus>().SetLevel(player.GetComponent<MyStatus>().LEVEL);
 		}
 	}
 }

@@ -21,6 +21,7 @@ public class Monitor : Orbit {
 
 		p = (MyHero)FindObjectOfType(typeof(MyHero));
 	}
+
 	
 	// Update is called once per frame
 	//lerp slerp 

@@ -11,11 +11,13 @@ public class FloatingText : MonoBehaviour {
 	public GUISkin CustomSkin;// GUISkin
 	public string Text = "";// Text
 	public float LifeTime = 1;// Life time
-	public bool FadeEnd = false;// Fade out at last 1 second before destroyed
+	[HideInInspector]
+	public bool FadeEnd = true;// Fade out at last 1 second before destroyed
 	public Color TextColor = Color.white; // Text color
 	public bool Position3D = false; // enabled when you need the text along with world 3d position
 	public Vector2 Position; // 2D Position
-	public int FontSize = 22;
+	[HideInInspector]
+	public int FontSize = 40;
 	private float alpha = 1;
 	private float timeTemp = 0;
 
