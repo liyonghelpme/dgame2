@@ -34,7 +34,7 @@ public class MyHero : MonoBehaviour {
 
 
 	HashSet<GameObject> listedHit = new HashSet<GameObject>();
-
+	PhotonView pv;
 
 	public void Relive() {
 		transform.position = new Vector3(0, 1, 0);
@@ -47,6 +47,7 @@ public class MyHero : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		pv = GetComponent<PhotonView>();
 		GetComponent<MyStatus>().isHero = true;
 		p = new Plane(Vector3.up, Vector3.zero);
 		gw = (GenWorld)FindObjectOfType(typeof(GenWorld));
@@ -199,6 +200,9 @@ public class MyHero : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
+		if(!pv.isMine)
+			return;
+
 		if(gw.over)
 			return;
 		if(gw.start)

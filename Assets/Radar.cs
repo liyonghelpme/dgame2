@@ -5,14 +5,16 @@ public class Radar : MonoBehaviour {
 	public Texture2D bg;
 	public Texture2D ar;
 	float distance = 60;
-	private MyHero player;
+	private GameObject player;
 	private GenWorld gw;
 	private MyGod []allGod;
 	public Texture2D ene;
 	// Use this for initialization
 	void Start () {
-		player = (MyHero)FindObjectOfType(typeof(MyHero));
+		//player = (MyHero)FindObjectOfType(typeof(MyHero));
+
 		gw = GetComponent<GenWorld>();
+		player = gw.player;
 	}
 	
 	// Update is called once per frame
@@ -69,8 +71,11 @@ public class Radar : MonoBehaviour {
 		}
 	}
 	void OnGUI() {
+		if(gw.start)
+			return;
 		if(player == null) {
-			player = (MyHero)FindObjectOfType(typeof(MyHero));
+			//player = (MyHero)FindObjectOfType(typeof(MyHero));
+			player = gw.player;
 		}
 
 		var scale = 150f/bg.width;

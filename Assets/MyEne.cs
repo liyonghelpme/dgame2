@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class MyEne : MonoBehaviour {
+public class MyEne : Photon.MonoBehaviour {
 	private float aiTime = 0;
 	private int aiState = 0;
 	private GameObject objectTarget;
@@ -152,6 +152,9 @@ public class MyEne : MonoBehaviour {
 	//attack nearby player
 	// Update is called once per frame
 	void Update () {
+		if(!photonView.isMine)
+			return;
+
 		var direction = Vector3.zero;
 		if(aiTime <= 0){
 			aiState = Random.Range(0, 1);

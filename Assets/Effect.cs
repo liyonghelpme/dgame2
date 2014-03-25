@@ -13,12 +13,14 @@ public class Effect : MonoBehaviour {
 	List<GameObject> nums;
 	GameObject player;
 	bool isDirty = false;
-	//GenWorld gw;
+
+	GenWorld gw;
 	// Use this for initialization
 	void Start () {
-		//gw = (GenWorld)FindObjectOfType(typeof(GenWorld));
+		gw = (GenWorld)FindObjectOfType(typeof(GenWorld));
 		nums = new List<GameObject>();
-		player = GameObject.FindGameObjectWithTag("Player");
+		//player = GameObject.FindGameObjectWithTag("Player");
+		player = gw.player;
 		//showEffect();
 	}
 	public void showEffect(){
@@ -41,8 +43,10 @@ public class Effect : MonoBehaviour {
 	// Update is called once per frame
 	//calculate all effect on same row
 	void Update () {
-		if(player == null)
-			player = GameObject.FindGameObjectWithTag("Player");
+		if(player == null) {
+			//player = GameObject.FindGameObjectWithTag("Player");
+			player = gw.player;
+		}
 		var dis = (transform.position-player.transform.position).sqrMagnitude;
 
 		//nearby and not isDirty if change Effect then dirty 

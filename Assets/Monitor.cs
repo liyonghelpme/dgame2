@@ -3,7 +3,7 @@ using System.Collections;
 
 //Camera Monitor role
 public class Monitor : Orbit {
-	MyHero p;
+	GameObject p;
 	public float CameraLength = 5;
 	// Use this for initialization
 	private Vector3 cameraPosition = Vector3.zero;
@@ -11,14 +11,17 @@ public class Monitor : Orbit {
 	private float tarZen;
 	private float frozeTime = 0;
 	private int tNum = 0;
+	GenWorld gw;
 	void Start () {
+		gw = (GenWorld)FindObjectOfType(typeof(GenWorld));
 		Data.Zenith = 0.5f;
 		tarZen = Data.Azimuth;
 		Data.Length = CameraLength;
 
 		//Camera.main.transform.position = cameraPosition;
 
-		p = (MyHero)FindObjectOfType(typeof(MyHero));
+		//p = (MyHero)FindObjectOfType(typeof(MyHero));
+
 	}
 
 	
@@ -46,7 +49,8 @@ public class Monitor : Orbit {
 			Data.Azimuth = Mathf.Lerp(Data.Azimuth, tarZen, Time.deltaTime*0.5f);
 			//}
 		}else {
-			p = (MyHero)FindObjectOfType(typeof(MyHero));
+			//p = (MyHero)FindObjectOfType(typeof(MyHero));
+			p = gw.player;
 		}
 	}
 }

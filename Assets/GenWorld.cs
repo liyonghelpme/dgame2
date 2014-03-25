@@ -24,6 +24,7 @@ public class GenWorld : Photon.MonoBehaviour {
 	private Effect []allDisc;
 	public GameObject winShow;
 	public bool over = false;
+	[HideInInspector]
 	public GameObject player;
 	public GUISkin skin;
 	public GUISkin serskin;
@@ -31,7 +32,7 @@ public class GenWorld : Photon.MonoBehaviour {
 	private string ow;
 	public Texture2D tb;
 	public bool start = true;
-	public GameObject [] zombies;
+	public string [] zombies;
 
 	private int eneCount = 20;
 	private float timeStamp = 0;
@@ -46,6 +47,8 @@ public class GenWorld : Photon.MonoBehaviour {
 	private bool createFail = false;
 	bool inCreate = false;
 
+	[HideInInspector]
+	public bool isOwner = false;
 
 	void OnJoinedRoom() {
 		inCreate = false;
@@ -72,9 +75,15 @@ public class GenWorld : Photon.MonoBehaviour {
 	}
 
 	void StartGame() {
-		object[] objs = new object[0];
+
+		object[] objs = null;
+		if(isOwner) {
+			objs = new object[1];
+			objs[0] = map;
+		}
 		player = PhotonNetwork.Instantiate(this.playerPrefabName, Vector3.zero, Quaternion.identity, 0, objs);
-		initBuilds();
+		//first get Player Data then get other information
+		StartCoroutine(initBuilds());
 	}
 	//GameManager gm;
 	void Awake(){
@@ -174,7 +183,6 @@ public class GenWorld : Photon.MonoBehaviour {
 		Debug.Log("out map");
 		debugMap();
 
-		initDungeon();
 		/*
 		GameObject gc = (GameObject)Instantiate(courner1C, Vector3.zero, Quaternion.AngleAxis(-180, Vector3.up));	
 		gc.SetActive(true);
@@ -183,11 +191,12 @@ public class GenWorld : Photon.MonoBehaviour {
 		GameObject gb = (GameObject)Instantiate(courner1B, Vector3.zero, Quaternion)
 		*/
 	}
-	void initBuilds(){
-
+	IEnumerator initBuilds(){
+		initDungeon();
 		initDist();
 		initGod();
 		isFinish = true;
+		yield return 0;
 	}
 	//only when one god changed into certain pos need to chech
 	public void checkQueue(){
@@ -289,8 +298,10 @@ public class GenWorld : Photon.MonoBehaviour {
 				inCreate = true;
 				if(!ava) {
 					PhotonNetwork.CreateRoom(roomName, true, true, 20);
+					isOwner = true;
 				}else {
 					PhotonNetwork.JoinRoom(roomName);
+					isOwner = false;
 				}
 			}
 			GUILayout.EndHorizontal();
@@ -630,6 +641,8 @@ public class GenWorld : Photon.MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
+		if(!isOwner)
+			return;
 		if(start)
 			return;
 
@@ -646,9 +659,16 @@ public class GenWorld : Photon.MonoBehaviour {
 			Vector3 v = new Vector3(row*10*2, 1, col*10*2);
 			//room exist but long path perhaps not exist
 			var rd = Random.Range(0, zombies.Length);
-			var z = (GameObject)GameObject.Instantiate(zombies[rd], v, Quaternion.identity);
-			z.SetActive(true);
-			z.GetComponent<MyStatus>().SetLevel(player.GetComponent<MyStatus>().LEVEL);
+
+			//var z = (GameObject)GameObject.Instantiate(zombies[rd], v, Quaternion.identity);
+
+
+			var lv = player.GetComponent<MyStatus>().LEVEL;
+			object[] objs = new object[1];
+			objs[0] = lv;
+			var z = PhotonNetwork.Instantiate(zombies[rd], v, Quaternion.identity, 0, objs);
+			//z.SetActive(true);
+			z.GetComponent<MyStatus>().SetLevel(lv);
 		}
 	}
 }
