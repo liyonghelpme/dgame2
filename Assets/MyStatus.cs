@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
-
+public enum WeaponType {
+	Melee = 0,
+	Ranged = 1,
+};
 public class MyStatus : MonoBehaviour {
 	[HideInInspector]
 	public int HP = 100;
@@ -44,6 +47,7 @@ public class MyStatus : MonoBehaviour {
 	int BaseSPmax = 18;
 	int BaseDamage = 1;
 	int BaseDefend = 0;
+	public WeaponType wtype = WeaponType.Melee;
 
 	public GameObject FloatingText;
 
@@ -56,6 +60,8 @@ public class MyStatus : MonoBehaviour {
 	public float frozeTime = 0;
 	bool hited = false;
 	public AudioClip hitSound;
+
+
 	// Use this for initialization
 	void Start () {
 		HP = 100;

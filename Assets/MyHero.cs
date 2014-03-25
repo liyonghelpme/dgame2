@@ -34,6 +34,17 @@ public class MyHero : MonoBehaviour {
 
 
 	HashSet<GameObject> listedHit = new HashSet<GameObject>();
+
+
+	public void Relive() {
+		transform.position = new Vector3(0, 1, 0);
+		gameObject.SetActive(true);
+		var ms = GetComponent<MyStatus>();
+		ms.isDead = false;
+		ms.HP = ms.HPmax;
+		attacking = false;
+	}
+
 	// Use this for initialization
 	void Start () {
 		GetComponent<MyStatus>().isHero = true;
@@ -101,8 +112,8 @@ public class MyHero : MonoBehaviour {
 			animation[aniName].speed = 2;
 		//cache this attack
 		} else {
-			attackStack++;
-			attackStack = Mathf.Min(3, attackStack);
+			//attackStack++;
+			//attackStack = Mathf.Min(3, attackStack);
 		}
 	}
 	//buffer most three attack
@@ -216,7 +227,7 @@ public class MyHero : MonoBehaviour {
 			bool findAttack = false;
 			var colliders = Physics.OverlapSphere(this.transform.position, 2);
 			foreach(var hit in colliders){
-				if(!hit || hit.gameObject == this.gameObject || hit.gameObject.tag == "Untagged")
+				if(!hit || hit.gameObject.tag != "Enemy")
 					continue;
 				//if enemy dead don't care
 				

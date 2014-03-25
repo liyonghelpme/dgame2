@@ -34,6 +34,8 @@ public class Radar : MonoBehaviour {
 		}
 	}
 	void drawGod(MyGod g) {
+		//if(player == null)
+		//	player = 
 		Vector3 dir = g.transform.position-player.transform.position;
 		dir.y = 0;
 		if(dir.sqrMagnitude < distance*distance) {
@@ -67,6 +69,10 @@ public class Radar : MonoBehaviour {
 		}
 	}
 	void OnGUI() {
+		if(player == null) {
+			player = (MyHero)FindObjectOfType(typeof(MyHero));
+		}
+
 		var scale = 150f/bg.width;
 		drawEnemy();
 		if(allGod != null) {

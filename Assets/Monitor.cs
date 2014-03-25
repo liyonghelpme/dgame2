@@ -16,8 +16,7 @@ public class Monitor : Orbit {
 		tarZen = Data.Azimuth;
 		Data.Length = CameraLength;
 
-
-		Camera.main.transform.position = cameraPosition;
+		//Camera.main.transform.position = cameraPosition;
 
 		p = (MyHero)FindObjectOfType(typeof(MyHero));
 	}
@@ -46,6 +45,8 @@ public class Monitor : Orbit {
 			//if(tarZen != Data.Azimuth) {
 			Data.Azimuth = Mathf.Lerp(Data.Azimuth, tarZen, Time.deltaTime*0.5f);
 			//}
+		}else {
+			p = (MyHero)FindObjectOfType(typeof(MyHero));
 		}
 	}
 }

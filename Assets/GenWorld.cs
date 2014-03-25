@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class GenWorld : MonoBehaviour {
+public class GenWorld : Photon.MonoBehaviour {
 	public GameObject courner1A;//cross
 	public GameObject courner1C; //corner
 	public GameObject courner1B; //T
@@ -26,10 +26,12 @@ public class GenWorld : MonoBehaviour {
 	public bool over = false;
 	public GameObject player;
 	public GUISkin skin;
+	public GUISkin serskin;
+
 	private string ow;
 	public Texture2D tb;
 	public bool start = true;
-	public GameObject zombies;
+	public GameObject [] zombies;
 
 	private int eneCount = 20;
 	private float timeStamp = 0;
@@ -39,12 +41,56 @@ public class GenWorld : MonoBehaviour {
 	private bool overShowAd = false;
 	public Texture2D wb;
 	bool hideYet = false;
+
+	public string playerPrefabName = "Character";
+	private bool createFail = false;
+	bool inCreate = false;
+
+
+	void OnJoinedRoom() {
+		inCreate = false;
+		StartGame();
+	}
+	//leave room get back to load view
+	IEnumerator OnLeftRoom() {
+		while(PhotonNetwork.room != null || PhotonNetwork.connected == false)
+			yield return 0;
+		//Application.LoadLevel()
+	}
+	void OnDisconnectedFromPhoton() {
+		Debug.LogWarning("Disconnect photon");
+	}
+	void OnPhotonCreateRoomFailed() {
+		createFail = true;
+		inCreate = false;
+		Debug.Log("create faile plear try again");
+	}
+
+	void OnPhotonJoinRoomFailed() {
+		inCreate = false;
+		createFail = true;
+	}
+
+	void StartGame() {
+		object[] objs = new object[0];
+		player = PhotonNetwork.Instantiate(this.playerPrefabName, Vector3.zero, Quaternion.identity, 0, objs);
+		initBuilds();
+	}
+	//GameManager gm;
+	void Awake(){
+		if(!PhotonNetwork.connected)
+			PhotonNetwork.ConnectUsingSettings("v1.0");
+		PhotonNetwork.playerName = PlayerPrefs.GetString("playerName", "Guest"+Random.Range(1, 9999));
+	}
+	private string roomName = "myRoom";
+	private bool ava = false;
 	//     2 
 	// 4        1
 	//     8
 	// Use this for initialization
 	void Start () {
-		//Random.seed = (int)(Time.time*10);
+		//gm = GetComponent<GameManager>();
+		Random.seed = 1;
 		//ad.Hide();
 
 		map = new int[Width*Height];
@@ -127,10 +173,8 @@ public class GenWorld : MonoBehaviour {
 		}
 		Debug.Log("out map");
 		debugMap();
+
 		initDungeon();
-		initDist();
-		initGod();
-		isFinish = true;
 		/*
 		GameObject gc = (GameObject)Instantiate(courner1C, Vector3.zero, Quaternion.AngleAxis(-180, Vector3.up));	
 		gc.SetActive(true);
@@ -138,6 +182,12 @@ public class GenWorld : MonoBehaviour {
 		ma.SetActive(true);
 		GameObject gb = (GameObject)Instantiate(courner1B, Vector3.zero, Quaternion)
 		*/
+	}
+	void initBuilds(){
+
+		initDist();
+		initGod();
+		isFinish = true;
 	}
 	//only when one god changed into certain pos need to chech
 	public void checkQueue(){
@@ -179,7 +229,76 @@ public class GenWorld : MonoBehaviour {
 	}
 	void showContent() {
 	}
+	void ShowConnectingGUI() {
+		if(serskin)
+			GUI.skin = serskin;
+		//GUI.skin = null;
+		GUILayout.BeginArea(new Rect((Screen.width-400)/2, (Screen.height-300)/2, 400, 300));
+		GUILayout.Label("Connecting to Game server.");
+		GUILayout.Label("Please wait for a while");
+		GUILayout.EndArea();
+	}
+	void OnCreatedRoom() {
+	}
 	void OnGUI(){
+		if(inCreate){
+			if(serskin)
+				GUI.skin = serskin;
+			GUILayout.BeginArea(new Rect((Screen.width-400)/2, (Screen.height-300)/2, 400, 300));
+			GUILayout.Label("Entering Game");
+			GUILayout.EndArea();
+			return;
+		}
+
+		if(!PhotonNetwork.connected) {
+			ShowConnectingGUI();
+			return;
+		}
+
+		//not connect room yet
+		if(PhotonNetwork.room == null) {
+			if(serskin)
+				GUI.skin = serskin;
+			//GUI.skin = null;
+
+			GUILayout.BeginArea(new Rect((Screen.width-400)/2, (Screen.height-300)/2, 400, 300), "server");
+			GUILayout.Label("Main Menu");
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("Your Name", GUILayout.Width(150));
+			GUILayout.Label(PhotonNetwork.playerName);
+			GUILayout.EndHorizontal();
+
+			GUILayout.BeginHorizontal();
+			if(createFail) {
+				GUILayout.Label("create Room Error try again");
+			}
+
+			if(PhotonNetwork.GetRoomList().Length == 0){
+				GUILayout.Label(".. no games available...");
+				ava = false;
+			}else {
+				GUILayout.Label(".. room availabel ..");
+				ava = true;
+			}
+			GUILayout.EndHorizontal();
+
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("Your Room", GUILayout.Width(150));
+			GUILayout.Label(roomName);
+			if(GUILayout.Button("Start Game")) {
+				inCreate = true;
+				if(!ava) {
+					PhotonNetwork.CreateRoom(roomName, true, true, 20);
+				}else {
+					PhotonNetwork.JoinRoom(roomName);
+				}
+			}
+			GUILayout.EndHorizontal();
+
+			GUILayout.EndArea();
+			return;
+		}
+
 		if(skin)
 			GUI.skin = skin;
 		if(start) {
@@ -215,7 +334,8 @@ public class GenWorld : MonoBehaviour {
 
 				//overShowAd = false;
 				//showAdYet = false;
-				Application.LoadLevel("test2");
+				//Application.LoadLevel("test2");
+				player.GetComponent<MyHero>().Relive();
 				return;
 			}
 			GUI.DrawTexture(new Rect(Screen.width/4, Screen.height/2-100, Screen.width/2, 80), tb, ScaleMode.ScaleToFit);
@@ -242,7 +362,8 @@ public class GenWorld : MonoBehaviour {
 		GUI.skin.button.alignment = TextAnchor.UpperCenter;
 		GUI.skin.button.fontSize = 50;
 		if(GUI.Button(new Rect(Screen.width/2-80, Screen.height/2, 160, 80), "Resume")) {
-			Application.LoadLevel("test2");
+			//Application.LoadLevel("test2");
+			player.GetComponent<MyHero>().Relive();
 			ad.Hide();
 			return;
 		}
@@ -524,7 +645,8 @@ public class GenWorld : MonoBehaviour {
 			var col = Random.Range(Mathf.Max(0, prow-3), Mathf.Min(Height, prow+3));
 			Vector3 v = new Vector3(row*10*2, 1, col*10*2);
 			//room exist but long path perhaps not exist
-			var z = (GameObject)GameObject.Instantiate(zombies, v, Quaternion.identity);
+			var rd = Random.Range(0, zombies.Length);
+			var z = (GameObject)GameObject.Instantiate(zombies[rd], v, Quaternion.identity);
 			z.SetActive(true);
 			z.GetComponent<MyStatus>().SetLevel(player.GetComponent<MyStatus>().LEVEL);
 		}

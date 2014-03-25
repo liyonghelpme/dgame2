@@ -1,4 +1,4 @@
-﻿  using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -7,7 +7,7 @@ public class MyEne : MonoBehaviour {
 	private int aiState = 0;
 	private GameObject objectTarget;
 	private float TurnSpeed = 5;
-	private float DistanceAttack = 1;
+	public float DistanceAttack = 1;
 	private float DistanceMoveTo = 20;
 	Vector3 moveDir = Vector3.zero;
 	private float Speed = 1.5f;
@@ -24,10 +24,11 @@ public class MyEne : MonoBehaviour {
 	string aniName = "attack";
 	float Direction = 0.5f;
 	private int Force = 500;
-
+	float attackTimeStamp = 0;
 	private bool diddamage = false;
 
 	private HashSet<GameObject> listedHit = new HashSet<GameObject>();
+	public GameObject projectTile;
 	//
 	// Use this for initialization
 	void Start () {
@@ -53,7 +54,10 @@ public class MyEne : MonoBehaviour {
 	}
 
 	void fightAnimation() {
-		if(!attacking && animation[aniName].enabled == false ) {
+		var aniState = animation[aniName];
+		//Debug.Log("aniName "+aniState.enabled.ToString()+" "+aniState.weight.ToString()+" "+aniState.time.ToString()+" "+attacking);
+		if((!attacking && animation[aniName].enabled == false) || (Time.time - attackTimeStamp > 5 ) ) {
+			attackTimeStamp = Time.time;
 			attacking = true;
 			diddamage = false;
 			//attacking = false;
@@ -65,8 +69,8 @@ public class MyEne : MonoBehaviour {
 			animation[aniName].blendMode = AnimationBlendMode.Blend;
 			//cache this attack
 		} else {
-			attackStack++;
-			attackStack = Mathf.Min(3, attackStack);
+			//attackStack++;
+			//attackStack = Mathf.Min(3, attackStack);
 		}
 	}
 
@@ -88,7 +92,11 @@ public class MyEne : MonoBehaviour {
 		if(aniState.time > aniState.length*0.8f && !diddamage && attacking) {
 			attacking = false;
 			diddamage = true;
-			DoAttack();
+			if(ms.wtype == WeaponType.Melee)
+				DoAttack();
+			else
+				DoRangeAttack();
+
 			if(attackStack>1){
 				attackStack--;
 				//not froze then attack
@@ -96,6 +104,16 @@ public class MyEne : MonoBehaviour {
 				//fightAnimation();
 			}else {
 				animation.Play("idle");
+			}
+		}
+	}
+	void DoRangeAttack() {
+		if(projectTile){
+			var pt = (GameObject)Instantiate(projectTile, transform.position+new Vector3(0, 1f, 0), Quaternion.identity);
+			pt.transform.forward = transform.forward;
+			if(pt.GetComponent<MissileBase>()){
+				pt.GetComponent<MissileBase>().Owner = gameObject;
+				pt.GetComponent<MissileBase>().Damage = ms.Damage;
 			}
 		}
 	}
@@ -151,6 +169,7 @@ public class MyEne : MonoBehaviour {
 			ra *= objectTarget.transform.localScale.x;
 
 			//nearby then try to attack
+			//ranged attack then check DistanceAttack
 			if(distance <= Mathf.Max(ra*1.2f, DistanceAttack)){
 				//need to rotation my self
 				transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, str);
