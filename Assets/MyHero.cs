@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class MyHero : MonoBehaviour {
+public class MyHero : Photon.MonoBehaviour {
 	CharacterController controller;
 	float speed = 3.0f;
 	bool move = false;
@@ -35,20 +35,30 @@ public class MyHero : MonoBehaviour {
 
 	HashSet<GameObject> listedHit = new HashSet<GameObject>();
 	PhotonView pv;
-
+	CharacterNet cn;
+	MyStatus ms;
 	public void Relive() {
 		transform.position = new Vector3(0, 1, 0);
 		gameObject.SetActive(true);
-		var ms = GetComponent<MyStatus>();
+		//var ms = GetComponent<MyStatus>();
 		ms.isDead = false;
 		ms.HP = ms.HPmax;
 		attacking = false;
+		showSelf();
+	}
+	void showSelf() {
+		var rc = GetComponentsInChildren<Renderer>();
+		foreach(var i in rc)
+			i.enabled =  true;
 	}
 
 	// Use this for initialization
 	void Start () {
+		cn = GetComponent<CharacterNet>();
+
 		pv = GetComponent<PhotonView>();
-		GetComponent<MyStatus>().isHero = true;
+		ms = GetComponent<MyStatus>();
+		ms.isHero = true;
 		p = new Plane(Vector3.up, Vector3.zero);
 		gw = (GenWorld)FindObjectOfType(typeof(GenWorld));
 
@@ -96,21 +106,55 @@ public class MyHero : MonoBehaviour {
 		//Debug.Log("move dir "+moveDir.ToString());
 		controller.SimpleMove(moveDir);
 	}
+	//view data divided show view by client 
+	//show data by rpc
+	[RPC]
+	void finishFight(int vid, int dam) {
+		var p = PhotonView.Find(vid);
+		if(p) {
+			var h = p.GetComponent<MyStatus>();
+			if(h){
+				h.getDamage(dam);
+			}
+		}
+		targetViewId = vid;
+		showFightAni();
+	}
 
+	int targetViewId = -1;
+	[RPC]
+	void fightNow(int vid) {
+		targetViewId = vid;
+		showFightAni();
+	}
+
+	void showFightAni() {
+		//attacking = false;
+		//diddamage = false;
+		var r = Random.Range(1, 3);
+		aniName = "attack"+r.ToString();
+		animation.Play(aniName, PlayMode.StopAll);
+		
+		//block idle animation
+		animation[aniName].layer = 2;
+		animation[aniName].blendMode = AnimationBlendMode.Blend;
+		animation[aniName].speed = 2;
+	}
+
+	float attackTimeStamp = 0;
+	//most attack Time cost
 	void fightAnimation() {
 		//if not in attack
-		if(!attacking && !animation[aniName].enabled) {
+		if((!attacking && !animation[aniName].enabled) || (Time.time-attackTimeStamp) > 2) {
 			attacking = true;
 			diddamage = false;
-			//attacking = false;
-			//diddamage = false;
-			var r = Random.Range(1, 3);
-			aniName = "attack"+r.ToString();
-			animation.Play(aniName, PlayMode.StopAll);
-			//block idle animation
-			animation[aniName].layer = 2;
-			animation[aniName].blendMode = AnimationBlendMode.Blend;
-			animation[aniName].speed = 2;
+			attackTimeStamp = Time.time;
+
+			//fightNow make sure attackTarget animation calculate
+			var objs = new object[1];
+			objs[0] = objectTarget.GetComponent<PhotonView>().viewID;
+			photonView.RPC("fightNow", PhotonTargets.Others, objs);
+			showFightAni();
 		//cache this attack
 		} else {
 			//attackStack++;
@@ -160,6 +204,11 @@ public class MyHero : MonoBehaviour {
 				}
 
 				status.AddParticle(hit.transform.position+Vector3.up);
+
+				var objs = new object[2];
+				objs[0] = status.GetComponent<PhotonView>().viewID;
+				objs[1] = takedamage;
+				photonView.RPC("finishFight", PhotonTargets.Others, objs);
 				//listObjHitted.Add(hit.gameObject);
 			}
 
@@ -186,6 +235,7 @@ public class MyHero : MonoBehaviour {
 			//if(!diddamage) {
 			//	diddamage = true;
 				DoAttack();
+				
 				if(attackStack>1){
 					attackStack--;
 					fightAnimation();
@@ -197,10 +247,14 @@ public class MyHero : MonoBehaviour {
 		}
 
 	}
-
+	private GameObject objectTarget;
 	// Update is called once per frame
 	void Update () {
-		if(!pv.isMine)
+		if(!pv.isMine) {
+			ms.ShowMove();
+			return;
+		}
+		if(ms.isDead)
 			return;
 
 		if(gw.over)
@@ -234,13 +288,17 @@ public class MyHero : MonoBehaviour {
 				if(!hit || hit.gameObject.tag != "Enemy")
 					continue;
 				//if enemy dead don't care
-				
+				var sta = hit.gameObject.GetComponent<MyStatus>();
+				if(sta != null && sta.isDead)
+					continue;
+
 				//judge whether direction has enemy no enemy just dont attack		
 				var dir = (hit.transform.position-transform.position).normalized;
 				var td = Vector3.Dot(dir, transform.forward);
 				if(td < Direction){
 					continue;
 				}
+				objectTarget = hit.gameObject;
 				findAttack = true;
 				Attack();
 				break;

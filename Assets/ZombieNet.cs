@@ -23,8 +23,10 @@ public class ZombieNet : Photon.MonoBehaviour {
 		}
 	}
 	//only master server zombie can attack 
-	private Vector3 correctPos = Vector3.zero;
-	private Quaternion correctRot = Quaternion.identity;
+	[HideInInspector]
+	public Vector3 correctPos = Vector3.zero;
+	[HideInInspector]
+	public Quaternion correctRot = Quaternion.identity;
 	
 	// Update is called once per frame
 	void Update () {

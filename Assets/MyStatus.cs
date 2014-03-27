@@ -4,7 +4,7 @@ public enum WeaponType {
 	Melee = 0,
 	Ranged = 1,
 };
-public class MyStatus : MonoBehaviour {
+public class MyStatus : Photon.MonoBehaviour {
 	[HideInInspector]
 	public int HP = 100;
 	[HideInInspector]
@@ -61,9 +61,12 @@ public class MyStatus : MonoBehaviour {
 	bool hited = false;
 	public AudioClip hitSound;
 
-
+	CharacterNet cn;
+	ZombieNet zn;
 	// Use this for initialization
 	void Start () {
+		cn = GetComponent<CharacterNet>();
+		zn = GetComponent<ZombieNet>();
 		HP = 100;
 		SP = 100;
 	}
@@ -77,15 +80,57 @@ public class MyStatus : MonoBehaviour {
 			hited = true;
 		}
 	}
+	public void ShowMove() {
+		if(cn != null) {
+			if((cn.correctPos-transform.position).sqrMagnitude > 0.001f)
+				animation.CrossFade("run");
+			else
+				animation.CrossFade("idle");
+		}else if(zn != null) {
+			if((zn.correctPos-transform.position).sqrMagnitude > 0.001f)
+				animation.CrossFade("run");
+			else
+				animation.CrossFade("idle");
+		}
+	}
 
-
-	public int ApplyDamage(int damage, Vector3 dirdamage, GameObject attacker) {
-		if(HP < 0)
-			return 0;
+	//other give Hurt
+	//me giveHurt
+	//other player kill zombie
+	public void getDamage(int damval) {
+		//GotHit(0.5f);
+		AddFloaingText(transform.position, damval.ToString());
+		AddParticle(transform.position+Vector3.up);
+		HP -= damval;
 		GotHit(0.5f);
 		if(hitSound){
 			AudioSource.PlayClipAtPoint(hitSound, transform.position);
 		}
+	}
+
+	//master server calculate damage
+	//send result to other player
+	public int ApplyDamage(int damage, Vector3 dirdamage, GameObject attacker) {
+		if(HP < 0)
+			return 0;
+
+		GotHit(0.5f);
+		if(hitSound){
+			AudioSource.PlayClipAtPoint(hitSound, transform.position);
+		}
+
+		//master control Zombie attack other user otheruser get hurt
+		/*
+		if(isHero) {
+			if(photonView.isMine) {
+				//return 0;
+			}else {
+				//do harm to other player
+				photonView.RPC("doDamage");
+			}
+		}
+		*/
+
 
 		//TODO: GotHit
 		var damval = damage-Defend;
@@ -97,16 +142,96 @@ public class MyStatus : MonoBehaviour {
 		AddFloaingText(transform.position, damval.ToString());
 
 		velocityDamage = dirdamage;
-		if(HP <= 0){
+
+		//zombie attack master 
+		//zombie attack other player
+
+		//zombie attack other player other player just show hurt not Destory it
+		//only change its HP 
+		//only master run this code
+
+		//other player kill zombie
+		//master player kill zombie
+		//zombie kill other player
+		//zombie kill master player
+		if(HP <= 0 ){
+			//if(PhotonNetwork.isMasterClient)
 			Dead();
 		}
 
 		return damval;
 	}
+
+	//kill Zombie
+	//kill hero 
+
+	//zombie master player  killBy masterServer
+	//other player kill by other user
+
+	//master tell client zombie killed or player killed 
+
+	//only master can destroy zombie will receive kill information
+ 	
+	//kill zombie  by master player or by client player
+
+	//kill player  master zombie kill other player
+
+	//master zombie kill master player
+	[RPC]
+	void killMe(int oid) {
+		if(!isDead) {
+			isDead = true;
+			if(DeadModel) {
+				var deadBody = (GameObject)Instantiate(DeadModel, transform.position, transform.rotation);
+				CopyTransformRecurse(transform, deadBody.transform);
+				Destroy(deadBody, 5f);
+			}
+			//gameObject.SetActive(false);
+			hideObj();
+			//}
+			//gameObject.renderer.enabled = false;
+			//Destroy(gameObject, 5);
+			//isMasterClient kill this zombie
+			destroyZom();
+		}
+	}
+	 
+	IEnumerator rzom() {
+		yield return new WaitForSeconds(5);
+		PhotonNetwork.Destroy(gameObject);
+	}
+	//only masterClient send destroy message to other zombies
+	void destroyZom() {
+		if(!isHero && PhotonNetwork.isMasterClient) {
+			//Destroy(gameObject, 5);
+			StartCoroutine(rzom());
+		}
+	}
+
+	void hideObj() {
+		var rc = GetComponentsInChildren<Renderer>();
+		foreach(var i in rc)
+			i.enabled = false;
+	}
 	//TODO: Dead
+
+	//Master Zombie killed by master player
 	void Dead() {
 		if(isDead)
 			return;
+
+		//kill Zombie
+		//kill Zombie or kill hero by whom?
+		//if(!isHero) {
+		var obj = new object[1];
+		//who kill me?
+		if(killer != null && killer.GetComponent<PhotonView>()) {
+			obj[0] = killer.GetComponent<PhotonView>().viewID;
+		}else
+			obj[0] = -1;
+		photonView.RPC("killMe", PhotonTargets.Others, obj);
+		//}
+
 		isDead = true;
 
 		if(DeadModel) {
@@ -117,10 +242,23 @@ public class MyStatus : MonoBehaviour {
 		if(GetComponent<DeadNow>())
 			GetComponent<DeadNow>().OnDead();
 		GiveExpToKiller();
-		//TODO:DeadModel
-		if(disappear)
-			Destroy(gameObject);
+		//wait For network syn at last remove object
+		hideObj();
+			//gameObject.renderer.enabled = false;
+			//gameObject.SetActive(false);
+			//Destroy(gameObject, 5);
+
+		//only when I'am master I will delete gameobject
+		//master make it
+		//zombie dead destroy after 5 seconds
+
+		destroyZom();
+
+		//heroDead just setActive false
+		//masterHeroDead notify others
+		//other player dead notify masterHero
 	}
+
 	void GiveExpToKiller() {
 		if(killer) {
 			if(killer.GetComponent<MyStatus>()) {
@@ -131,10 +269,24 @@ public class MyStatus : MonoBehaviour {
 
 	public void ApplyExp(int ad) {
 		EXP += ad;
+		bool l = false;
 		while(EXP >= EXPmax) {
+			LevelUp();
+			l = true;
+		}
+		if(l){
+			var objs = new object[1];
+			objs[0] = LEVEL;
+			photonView.RPC("getLevel", PhotonTargets.Others, objs);
+		}
+	}
+	[RPC]
+	void getLevel(int nl) {
+		while(LEVEL < nl) {
 			LevelUp();
 		}
 	}
+
 	public void SetLevel(int l) {
 		while(LEVEL < l) {
 			LevelUp();

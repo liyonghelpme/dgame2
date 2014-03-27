@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class MissileBase : MonoBehaviour {
+public class MissileBase : Photon.MonoBehaviour {
 
 	public int Damage;
 	public GameObject Owner;
@@ -28,16 +28,17 @@ public class MissileBase : MonoBehaviour {
 		if(other && Owner){
 			//enemy attack other building or anything which stop attack
 			//Debug.Log("missile other is "+other.gameObject.ToString()+" tag "+other.tag+" "+Owner.gameObject.tag);
-			if(other.tag != Owner.gameObject.tag && other.tag != "God"){
+			if(other.tag != Owner.gameObject.tag && other.tag != "God" && other.tag != "Enemy"){
 				if(ExplosiveObject){
 					GameObject expspawned = (GameObject)GameObject.Instantiate(ExplosiveObject,this.transform.position,this.transform.rotation);
 					GameObject.Destroy(expspawned,2);
 				}
-
-				if(other.gameObject.GetComponent<MyStatus>()){
-					other.gameObject.GetComponent<MyStatus>().ApplyDamage(Damage,Vector3.zero,Owner);
+				//only master zombie can do real damage
+				if(PhotonNetwork.isMasterClient) {
+					if(other.gameObject.GetComponent<MyStatus>()){
+						other.gameObject.GetComponent<MyStatus>().ApplyDamage(Damage,Vector3.zero,Owner);
+					}
 				}
-
 				GameObject.Destroy(this.gameObject);
 			}
 		}

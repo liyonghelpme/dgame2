@@ -47,8 +47,8 @@ public class GenWorld : Photon.MonoBehaviour {
 	private bool createFail = false;
 	bool inCreate = false;
 
-	[HideInInspector]
-	public bool isOwner = false;
+	//[HideInInspector]
+	//public bool isOwner = false;
 
 	void OnJoinedRoom() {
 		inCreate = false;
@@ -77,7 +77,7 @@ public class GenWorld : Photon.MonoBehaviour {
 	void StartGame() {
 
 		object[] objs = null;
-		if(isOwner) {
+		if(PhotonNetwork.isMasterClient) {
 			objs = new object[1];
 			objs[0] = map;
 		}
@@ -99,9 +99,21 @@ public class GenWorld : Photon.MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		//gm = GetComponent<GameManager>();
+		var sed = Random.Range(0, 99999);
+		Random.seed = sed;
 		Random.seed = 1;
 		//ad.Hide();
 
+
+		/*
+		GameObject gc = (GameObject)Instantiate(courner1C, Vector3.zero, Quaternion.AngleAxis(-180, Vector3.up));	
+		gc.SetActive(true);
+		GameObject ma = (GameObject)Instantiate(modulaA, Vector3.zero, Quaternion.AngleAxis(90, Vector3.up));
+		ma.SetActive(true);
+		GameObject gb = (GameObject)Instantiate(courner1B, Vector3.zero, Quaternion)
+		*/
+	}
+	void initMapData() {
 		map = new int[Width*Height];
 		map[0] = 3;
 		Debug.Log("le "+map.Length.ToString());
@@ -129,7 +141,7 @@ public class GenWorld : Photon.MonoBehaviour {
 		//Height-1 * Width  column edge 
 		// 0 1  Width-2 
 		//0, 1 Height-2
-
+		
 		//random cut times
 		var totalE = (Width-1)*Height+(Height-1)*Width;
 		var minNum = Width*Height-1;
@@ -137,7 +149,7 @@ public class GenWorld : Photon.MonoBehaviour {
 		//remove how many edges
 		var cutNum = Random.Range(maxCut/4, maxCut+1);
 		Debug.Log("cut Num "+cutNum.ToString());
-
+		
 		for(var i = 0; i < cutNum; i++) {
 			//remove row Edge
 			int id1, id2;
@@ -148,7 +160,7 @@ public class GenWorld : Photon.MonoBehaviour {
 				//row
 				var cr = Random.Range(0, Height);
 				Debug.Log("cn cr "+cn.ToString()+" "+cr.ToString());
-
+				
 				id1 = cr*Width+cn;
 				v1 = map[id1];
 				//no edge 
@@ -158,7 +170,7 @@ public class GenWorld : Photon.MonoBehaviour {
 				v2 = map[id2];
 				map[id1] &= 14;
 				map[id2] &= 11;
-			//remove col Edge
+				//remove col Edge
 			}else {
 				var cn = Random.Range(0, Width);
 				var cr = Random.Range(0, Height-1);
@@ -182,16 +194,9 @@ public class GenWorld : Photon.MonoBehaviour {
 		}
 		Debug.Log("out map");
 		debugMap();
-
-		/*
-		GameObject gc = (GameObject)Instantiate(courner1C, Vector3.zero, Quaternion.AngleAxis(-180, Vector3.up));	
-		gc.SetActive(true);
-		GameObject ma = (GameObject)Instantiate(modulaA, Vector3.zero, Quaternion.AngleAxis(90, Vector3.up));
-		ma.SetActive(true);
-		GameObject gb = (GameObject)Instantiate(courner1B, Vector3.zero, Quaternion)
-		*/
 	}
 	IEnumerator initBuilds(){
+		initMapData();
 		initDungeon();
 		initDist();
 		initGod();
@@ -298,10 +303,10 @@ public class GenWorld : Photon.MonoBehaviour {
 				inCreate = true;
 				if(!ava) {
 					PhotonNetwork.CreateRoom(roomName, true, true, 20);
-					isOwner = true;
+					//isOwner = true;
 				}else {
 					PhotonNetwork.JoinRoom(roomName);
-					isOwner = false;
+					//isOwner = false;
 				}
 			}
 			GUILayout.EndHorizontal();
@@ -641,7 +646,7 @@ public class GenWorld : Photon.MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-		if(!isOwner)
+		if(!PhotonNetwork.isMasterClient)
 			return;
 		if(start)
 			return;

@@ -47,6 +47,8 @@ public class Effect : MonoBehaviour {
 			//player = GameObject.FindGameObjectWithTag("Player");
 			player = gw.player;
 		}
+		if(player == null)
+			return;
 		var dis = (transform.position-player.transform.position).sqrMagnitude;
 
 		//nearby and not isDirty if change Effect then dirty 

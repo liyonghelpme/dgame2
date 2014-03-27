@@ -22,7 +22,8 @@ public class CharacterHUD : MonoBehaviour {
 	}
 
 	void OnGUI(){
-
+		if(character.isDead)
+			return;
 		if(Skin!=null)
 		GUI.skin = Skin;
 		

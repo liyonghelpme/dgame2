@@ -53,20 +53,82 @@ public class MyEne : Photon.MonoBehaviour {
 		}
 	}
 
+	//zombie find hero do damage to him
+	[RPC]
+	void finishFight(int vid, int dam) {
+		var p = PhotonView.Find(vid);
+		if(p) {
+			var h = p.GetComponent<MyStatus>();
+			if(h){
+				h.getDamage(dam);
+			}
+		}
+		targetViewId = vid;
+		if(ms.frozeTime <= 0) {
+			showFightAni();
+			StartCoroutine(showRange());
+		}
+	}
+
+	void showFightAni() {
+		aniName = "attack";
+		animation.Play(aniName, PlayMode.StopAll);
+		//block idle animation
+		animation[aniName].layer = 2;
+		animation[aniName].blendMode = AnimationBlendMode.Blend;
+	}
+
+	private int targetViewId = -1;
+	//doAttack Animation
+	//check Attack Effect
+	//make attack Animation slow
+	[RPC]
+	void fightNow(int vid) {
+		targetViewId = vid;
+		if(ms.frozeTime <= 0) {
+			showFightAni();
+			//if has projectTile then send it out
+			StartCoroutine(showRange());
+		}
+	}
+	//wait for a time then send missile
+	//range zombie show range attack
+	//only when target not dead will do attack
+	IEnumerator showRange() {
+		if(projectTile){
+			var pt = (GameObject)Instantiate(projectTile, transform.position+new Vector3(0, 1f, 0), Quaternion.identity);
+			pt.transform.forward = transform.forward;
+			if(pt.GetComponent<MissileBase>()){
+				pt.GetComponent<MissileBase>().Owner = gameObject;
+				pt.GetComponent<MissileBase>().Damage = ms.Damage;
+			}
+		}
+		yield return 0;
+	}
+
+
+
 	void fightAnimation() {
 		var aniState = animation[aniName];
 		//Debug.Log("aniName "+aniState.enabled.ToString()+" "+aniState.weight.ToString()+" "+aniState.time.ToString()+" "+attacking);
-		if((!attacking && animation[aniName].enabled == false) || (Time.time - attackTimeStamp > 5 ) ) {
+		if((!attacking && animation[aniName].enabled == false) || (Time.time - attackTimeStamp > 2 ) ) {
+			var objs = new object[1];
+			objs[0] = objectTarget.GetComponent<PhotonView>().viewID;
+			photonView.RPC("fightNow", PhotonTargets.Others, objs);
+
 			attackTimeStamp = Time.time;
 			attacking = true;
 			diddamage = false;
 			//attacking = false;
 			//diddamage = false;
-			aniName = "attack";
+
+			showFightAni();
+			/*
 			animation.Play(aniName, PlayMode.StopAll);
 			//block idle animation
 			animation[aniName].layer = 2;
 			animation[aniName].blendMode = AnimationBlendMode.Blend;
+			*/
 			//cache this attack
 		} else {
 			//attackStack++;
@@ -141,6 +203,12 @@ public class MyEne : Photon.MonoBehaviour {
 
 				if(!status.isDead)
 					status.AddParticle(hit.transform.position+Vector3.up);
+
+				//Master Client 
+				var objs = new object[2];
+				objs[0] = status.GetComponent<PhotonView>().viewID;
+				objs[1] = takedamage;
+				photonView.RPC("finishFight", PhotonTargets.Others, objs);
 				//listObjHitted.Add(hit.gameObject);
 			}
 		}
@@ -152,7 +220,11 @@ public class MyEne : Photon.MonoBehaviour {
 	//attack nearby player
 	// Update is called once per frame
 	void Update () {
-		if(!photonView.isMine)
+		if(!photonView.isMine) {
+			ms.ShowMove();
+			return;
+		}
+		if(ms.isDead)
 			return;
 
 		var direction = Vector3.zero;
@@ -200,7 +272,7 @@ public class MyEne : Photon.MonoBehaviour {
 			float length = float.MaxValue;
 			for(int i = 0; i < targets.Length; i++){
 				float dist = (targets[i].transform.position-transform.position).sqrMagnitude;
-				if(dist < length && !targets[i].GetComponent<MyStatus>().isDead) {
+				if(targets[i] != null && dist < length && !targets[i].GetComponent<MyStatus>().isDead) {
 					length = dist;
 					objectTarget = targets[i];
 				}

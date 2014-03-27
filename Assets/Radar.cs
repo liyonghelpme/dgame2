@@ -36,6 +36,8 @@ public class Radar : MonoBehaviour {
 		}
 	}
 	void drawGod(MyGod g) {
+		if(player == null)
+			return;
 		//if(player == null)
 		//	player = 
 		Vector3 dir = g.transform.position-player.transform.position;

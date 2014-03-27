@@ -24,8 +24,10 @@ public class CharacterNet : Photon.MonoBehaviour {
 		}
 	}
 	//when initial other player just initial its position and rotation not just send simple data
-	private Vector3 correctPos = Vector3.zero;
-	private Quaternion correctRot = Quaternion.identity;
+	[HideInInspector]
+	public Vector3 correctPos = Vector3.zero;
+	[HideInInspector]
+	public Quaternion correctRot = Quaternion.identity;
 
 	// Update is called once per frame
 	void Update () {
