@@ -72,6 +72,26 @@ public class Radar : MonoBehaviour {
 			}
 		}
 	}
+	void drawPlayer() {
+		var p = GameObject.FindGameObjectsWithTag("Player");
+		foreach(var e in p) {
+			if(e != player) {
+				Vector3 dir = e.transform.position-player.transform.position;
+				dir.y = 0;
+				if(dir.sqrMagnitude < distance*distance) {
+					float dist = dir.magnitude;
+					dir.Normalize();
+					float angle = Vector3.Angle(Vector3.forward, dir);
+					float ad = AngleDir(Vector3.forward, dir, Vector3.up);
+					angle *= ad;
+					Vector3 rd = dist/distance*75*dir;
+					GUI.color = Color.blue;
+					GUI.DrawTexture(new Rect(75+rd.x-ene.width/2, 75-rd.z-ene.height/2, ene.width, ene.height), ene);
+					GUI.color = Color.white;
+				}
+			}
+		}
+	}
 	void OnGUI() {
 		if(gw.start)
 			return;
@@ -87,6 +107,8 @@ public class Radar : MonoBehaviour {
 				drawGod(allGod[i]);
 			}
 		}
+
+		drawPlayer();
 
 		GUI.DrawTexture(new Rect(0, 0, 150, 150), bg);
 		if(player) {

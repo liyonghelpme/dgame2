@@ -31,10 +31,11 @@ public class MyEne : Photon.MonoBehaviour {
 	public GameObject projectTile;
 	//
 	// Use this for initialization
-	void Start () {
+	void Awake() {
 		ms = GetComponent<MyStatus>();
 		controller = GetComponent<CharacterController>();
 	}
+
 	void Move(Vector3 dir) {
 		moveDir = dir;
 		moveDir *= Speed*0.5f*(Vector3.Dot(gameObject.transform.forward, moveDir)+1);
@@ -56,14 +57,18 @@ public class MyEne : Photon.MonoBehaviour {
 	//zombie find hero do damage to him
 	[RPC]
 	void finishFight(int vid, int dam) {
+		targetViewId = vid;
+		//ms.targetViewId = vid;
+		//zombiew attack player
 		var p = PhotonView.Find(vid);
 		if(p) {
+			Debug.Log("zombie attack player");
 			var h = p.GetComponent<MyStatus>();
 			if(h){
-				h.getDamage(dam);
+				h.getDamage(gameObject, dam);
 			}
 		}
-		targetViewId = vid;
+
 		if(ms.frozeTime <= 0) {
 			showFightAni();
 			StartCoroutine(showRange());
@@ -94,6 +99,8 @@ public class MyEne : Photon.MonoBehaviour {
 	//wait for a time then send missile
 	//range zombie show range attack
 	//only when target not dead will do attack
+
+	//other Client zombie fight showRange 
 	IEnumerator showRange() {
 		if(projectTile){
 			var pt = (GameObject)Instantiate(projectTile, transform.position+new Vector3(0, 1f, 0), Quaternion.identity);
@@ -208,7 +215,16 @@ public class MyEne : Photon.MonoBehaviour {
 				var objs = new object[2];
 				objs[0] = status.GetComponent<PhotonView>().viewID;
 				objs[1] = takedamage;
-				photonView.RPC("finishFight", PhotonTargets.Others, objs);
+
+				//doharm to player
+				if(PhotonNetwork.isMasterClient)
+					photonView.RPC("finishFight", PhotonTargets.Others, objs);
+
+				Debug.Log("zombiew kill "+status.HP.ToString()+" client "+PhotonNetwork.isMasterClient.ToString());
+				if(status.HP <= 0 && PhotonNetwork.isMasterClient ){
+					//if(PhotonNetwork.isMasterClient)
+					status.Dead();
+				}
 				//listObjHitted.Add(hit.gameObject);
 			}
 		}
@@ -220,10 +236,12 @@ public class MyEne : Photon.MonoBehaviour {
 	//attack nearby player
 	// Update is called once per frame
 	void Update () {
+		//not control by myserver 
 		if(!photonView.isMine) {
 			ms.ShowMove();
 			return;
 		}
+
 		if(ms.isDead)
 			return;
 

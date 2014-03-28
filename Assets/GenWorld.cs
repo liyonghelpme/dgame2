@@ -46,14 +46,24 @@ public class GenWorld : Photon.MonoBehaviour {
 	public string playerPrefabName = "Character";
 	private bool createFail = false;
 	bool inCreate = false;
-
+	bool gameStartYet = false;
 	//[HideInInspector]
 	//public bool isOwner = false;
 
 	void OnJoinedRoom() {
+		gameStartYet = true;
+		seed = (int)PhotonNetwork.room.customProperties["seed"];
+		Random.seed = seed;
+		Debug.Log("roomSeed "+seed.ToString());
 		inCreate = false;
 		StartGame();
 	}
+	bool conFail = false;
+	void OnConnectionFail(DisconnectCause cause) {
+		Debug.Log("connection fail "+cause.ToString());
+		conFail = true;
+	}
+
 	//leave room get back to load view
 	IEnumerator OnLeftRoom() {
 		while(PhotonNetwork.room != null || PhotonNetwork.connected == false)
@@ -79,7 +89,7 @@ public class GenWorld : Photon.MonoBehaviour {
 		object[] objs = null;
 		if(PhotonNetwork.isMasterClient) {
 			objs = new object[1];
-			objs[0] = map;
+			objs[0] = seed;
 		}
 		player = PhotonNetwork.Instantiate(this.playerPrefabName, Vector3.zero, Quaternion.identity, 0, objs);
 		//first get Player Data then get other information
@@ -93,15 +103,20 @@ public class GenWorld : Photon.MonoBehaviour {
 	}
 	private string roomName = "myRoom";
 	private bool ava = false;
+
+	[HideInInspector]
+	public int seed;
+	//public bool initSeedYet = false;
 	//     2 
 	// 4        1
 	//     8
 	// Use this for initialization
 	void Start () {
 		//gm = GetComponent<GameManager>();
-		var sed = Random.Range(0, 99999);
-		Random.seed = sed;
-		Random.seed = 1;
+		seed = Random.Range(0, 99999);
+		Random.seed = seed;
+		Debug.Log("initSeed is "+seed.ToString());
+		//Random.seed = 1;
 		//ad.Hide();
 
 
@@ -254,6 +269,19 @@ public class GenWorld : Photon.MonoBehaviour {
 	}
 	void OnCreatedRoom() {
 	}
+
+	void ShowSorry() {
+		if(serskin)
+			GUI.skin = serskin;
+		GUILayout.BeginArea(new Rect((Screen.width-400)/2, (Screen.height-300)/2, 400, 300));
+		GUILayout.Label("Lost connection to game Server");
+		if(GUILayout.Button("Quit")) {
+			Application.LoadLevel(Application.loadedLevel);
+		}
+
+		GUILayout.EndArea();
+	}
+
 	void OnGUI(){
 		if(inCreate){
 			if(serskin)
@@ -265,7 +293,11 @@ public class GenWorld : Photon.MonoBehaviour {
 		}
 
 		if(!PhotonNetwork.connected) {
-			ShowConnectingGUI();
+			//game Start Yet 
+			if(conFail || gameStartYet) {
+				ShowSorry();
+			}else
+				ShowConnectingGUI();
 			return;
 		}
 
@@ -302,9 +334,14 @@ public class GenWorld : Photon.MonoBehaviour {
 			if(GUILayout.Button("Start Game")) {
 				inCreate = true;
 				if(!ava) {
-					PhotonNetwork.CreateRoom(roomName, true, true, 20);
+					Hashtable ht = new Hashtable();
+					ht.Add("seed", seed);
+					string[] send = new string[1];
+					send[0] = "seed";
+					PhotonNetwork.CreateRoom(roomName, true, true, 20 , ht, send);
 					//isOwner = true;
 				}else {
+
 					PhotonNetwork.JoinRoom(roomName);
 					//isOwner = false;
 				}

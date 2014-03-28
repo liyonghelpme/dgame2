@@ -33,6 +33,7 @@ public class MissileBase : Photon.MonoBehaviour {
 					GameObject expspawned = (GameObject)GameObject.Instantiate(ExplosiveObject,this.transform.position,this.transform.rotation);
 					GameObject.Destroy(expspawned,2);
 				}
+				//DoDamage show to other player
 				//only master zombie can do real damage
 				if(PhotonNetwork.isMasterClient) {
 					if(other.gameObject.GetComponent<MyStatus>()){

@@ -40,6 +40,8 @@ public class ZombieNet : Photon.MonoBehaviour {
 		object[] objs = photonView.instantiationData;
 		int lv = (int)(objs[0]);
 		GetComponent<MyStatus>().SetLevel(lv);
+		correctPos = transform.position;
+		correctRot = transform.rotation;
 	}
 }
 

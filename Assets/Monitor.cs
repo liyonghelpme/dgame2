@@ -12,6 +12,7 @@ public class Monitor : Orbit {
 	private float frozeTime = 0;
 	private int tNum = 0;
 	GenWorld gw;
+
 	void Start () {
 		gw = (GenWorld)FindObjectOfType(typeof(GenWorld));
 		Data.Zenith = 0.5f;
@@ -33,15 +34,20 @@ public class Monitor : Orbit {
 			gameObject.transform.position = lookAt;
 			gameObject.transform.LookAt(p.transform.position);
 			RaycastHit hit;
-			if(Physics.Linecast(transform.position, p.transform.position, out hit)) {
-				//Debug.Log("hitObject "+hit.collider.gameObject.name);
-				if(hit.collider.gameObject != p.gameObject && hit.collider.gameObject.tag == "Untagged") {
-					if(Mathf.Abs(Data.Azimuth-tarZen) < 0.1f) {
-						tNum++;
-						tNum %= 4;
-						tarZen = tNum*1.5f;
+			if(frozeTime == 0) {
+				if(Physics.Linecast(transform.position, p.transform.position, out hit)) {
+					//Debug.Log("hitObject "+hit.collider.gameObject.name);
+					if(hit.collider.gameObject != p.gameObject && hit.collider.gameObject.tag == "Untagged") {
+						if(Mathf.Abs(Data.Azimuth-tarZen) < 0.1f) {
+							tNum++;
+							tNum %= 4;
+							tarZen = tNum*1.5f;
+							frozeTime = 1;
+						}
 					}
 				}
+			}else {
+				frozeTime -= Time.deltaTime;
 			}
 
 			//Debug.Log("tarZen " +tarZen.ToString());

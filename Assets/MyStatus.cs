@@ -60,7 +60,8 @@ public class MyStatus : Photon.MonoBehaviour {
 	public float frozeTime = 0;
 	bool hited = false;
 	public AudioClip hitSound;
-
+	[HideInInspector]
+	public int targetViewId = -1;
 	CharacterNet cn;
 	ZombieNet zn;
 	// Use this for initialization
@@ -97,14 +98,22 @@ public class MyStatus : Photon.MonoBehaviour {
 	//other give Hurt
 	//me giveHurt
 	//other player kill zombie
-	public void getDamage(int damval) {
+	public void getDamage(GameObject k, int damval) {
+		killer = k;
+
+		Debug.Log("player get damval");
 		//GotHit(0.5f);
 		AddFloaingText(transform.position, damval.ToString());
 		AddParticle(transform.position+Vector3.up);
 		HP -= damval;
+
 		GotHit(0.5f);
 		if(hitSound){
 			AudioSource.PlayClipAtPoint(hitSound, transform.position);
+		}
+
+		if(HP <= 0 && PhotonNetwork.isMasterClient) {
+			Dead();
 		}
 	}
 
@@ -151,13 +160,19 @@ public class MyStatus : Photon.MonoBehaviour {
 		//only master run this code
 
 		//other player kill zombie
+
+
 		//master player kill zombie
 		//zombie kill other player
 		//zombie kill master player
-		if(HP <= 0 ){
+		//server make player dead then player get notify
+		//only Master can kill objects changeStage client can't do that
+		/*
+		if(HP <= 0 && PhotonNetwork.isMasterClient ){
 			//if(PhotonNetwork.isMasterClient)
 			Dead();
 		}
+		*/
 
 		return damval;
 	}
@@ -177,6 +192,7 @@ public class MyStatus : Photon.MonoBehaviour {
 	//kill player  master zombie kill other player
 
 	//master zombie kill master player
+	//why client not receive killMe?
 	[RPC]
 	void killMe(int oid) {
 		if(!isDead) {
@@ -216,7 +232,7 @@ public class MyStatus : Photon.MonoBehaviour {
 	//TODO: Dead
 
 	//Master Zombie killed by master player
-	void Dead() {
+	public void Dead() {
 		if(isDead)
 			return;
 
@@ -229,7 +245,10 @@ public class MyStatus : Photon.MonoBehaviour {
 			obj[0] = killer.GetComponent<PhotonView>().viewID;
 		}else
 			obj[0] = -1;
-		photonView.RPC("killMe", PhotonTargets.Others, obj);
+
+		//only Master can change state
+		if(PhotonNetwork.isMasterClient)
+			photonView.RPC("killMe", PhotonTargets.Others, obj);
 		//}
 
 		isDead = true;
@@ -267,24 +286,31 @@ public class MyStatus : Photon.MonoBehaviour {
 		}
 	}
 
+	//only master can calculate exp
+	//zombiew can't get exp
 	public void ApplyExp(int ad) {
-		EXP += ad;
-		bool l = false;
-		while(EXP >= EXPmax) {
-			LevelUp();
-			l = true;
-		}
-		if(l){
-			var objs = new object[1];
-			objs[0] = LEVEL;
-			photonView.RPC("getLevel", PhotonTargets.Others, objs);
+		if(PhotonNetwork.isMasterClient && isHero) {
+			EXP += ad;
+			bool l = false;
+			while(EXP >= EXPmax) {
+				LevelUp();
+				l = true;
+			}
+			if(l){
+				var objs = new object[2];
+				objs[0] = LEVEL;
+				objs[1] = EXP;
+				photonView.RPC("getLevel", PhotonTargets.Others, objs);
+			}
 		}
 	}
+
 	[RPC]
-	void getLevel(int nl) {
+	void getLevel(int nl, int exp) {
 		while(LEVEL < nl) {
 			LevelUp();
 		}
+		EXP = exp;
 	}
 
 	public void SetLevel(int l) {
@@ -336,6 +362,9 @@ public class MyStatus : Photon.MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(isDead)
+			return;
+	
 		if(Time.time-lastRegen > 1) {
 			lastRegen = Time.time;
 			HP += HPregen;

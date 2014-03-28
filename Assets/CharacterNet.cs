@@ -2,10 +2,14 @@
 using System.Collections;
 
 public class CharacterNet : Photon.MonoBehaviour {
+	MyStatus ms;
 	void Awake() {
+		ms = GetComponent<MyStatus>();
 	}
+	GenWorld gw;
 	// Use this for initialization
 	void Start () {
+		//gw = GameObject.FindObjectWithType(typeof(GenWorld));
 		if(photonView.isMine){
 		}else {
 		}
@@ -18,11 +22,14 @@ public class CharacterNet : Photon.MonoBehaviour {
 		if(stream.isWriting){
 			stream.SendNext(transform.position);
 			stream.SendNext(transform.rotation);
+			stream.SendNext(ms.HP);
 		}else {
 			correctPos = (Vector3)stream.ReceiveNext();
 			correctRot = (Quaternion)stream.ReceiveNext();
+			ms.HP = (int)stream.ReceiveNext();
 		}
 	}
+
 	//when initial other player just initial its position and rotation not just send simple data
 	[HideInInspector]
 	public Vector3 correctPos = Vector3.zero;
@@ -39,8 +46,13 @@ public class CharacterNet : Photon.MonoBehaviour {
 
 	//according to initial Data determine to do what
 	void OnPhotonInstantiate(PhotonMessageInfo info) {
-
-		object[] objs = photonView.instantiationData;
+		/*
+		if(photonView.owner.isMasterClient) {
+			object[] objs = photonView.instantiationData;
+			var seed = (int)objs[0];
+			gw.seed = seed;
+		}
+		*/
 	}
 
 }

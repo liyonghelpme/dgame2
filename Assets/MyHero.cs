@@ -38,6 +38,11 @@ public class MyHero : Photon.MonoBehaviour {
 	CharacterNet cn;
 	MyStatus ms;
 	public void Relive() {
+		realRelive();
+		photonView.RPC("getUp", PhotonTargets.Others);
+	}
+
+	void realRelive() {
 		transform.position = new Vector3(0, 1, 0);
 		gameObject.SetActive(true);
 		//var ms = GetComponent<MyStatus>();
@@ -45,34 +50,71 @@ public class MyHero : Photon.MonoBehaviour {
 		ms.HP = ms.HPmax;
 		attacking = false;
 		showSelf();
+		tarPos = transform.position;
 	}
+
+	//Player HP increase to max
+	//how to reflect other player HP change?
+	[RPC]
+	void getUp() {
+		Debug.Log("show Self rpc");
+		realRelive();
+		//ms.HP = ms.HPmax;
+	}
+
+
 	void showSelf() {
 		var rc = GetComponentsInChildren<Renderer>();
 		foreach(var i in rc)
 			i.enabled =  true;
 	}
-
-	// Use this for initialization
-	void Start () {
+	void Awake() {
 		cn = GetComponent<CharacterNet>();
-
+		
 		pv = GetComponent<PhotonView>();
 		ms = GetComponent<MyStatus>();
 		ms.isHero = true;
 		p = new Plane(Vector3.up, Vector3.zero);
 		gw = (GenWorld)FindObjectOfType(typeof(GenWorld));
-
+		
 		controller = GetComponent<CharacterController>();
 		gameObject.animation.CrossFade("idle");
 		tarPos = transform.position;
 	}
+	// Use this for initialization
+	void Start () {
+
+	}
+
+	[RPC]
+	void pushGod(int gid, float x, float y, float z) {
+		if(gid > 0 && gid < gw.gg.Length) {
+			var god = gw.gg[gid-1];
+			god.transform.position = Vector3.Lerp(god.transform.position, new Vector3(x, y, z), Time.deltaTime*5);
+		}
+	}
+
+
+	bool inPush = false;
+	float pTime = 0;
+	MyGod pw;
 	void OnControllerColliderHit(ControllerColliderHit hit){
 		var body = hit.collider.attachedRigidbody;
 		if(body == null) return;
+
 		if(hit.moveDirection.y < -0.3) return;
 		var pushDir = new Vector3(hit.moveDirection.x, 0, hit.moveDirection.z);
 		body.velocity = pushDir*pushPower;
+
+		//Only my hero push take effect show to others
+		if(photonView.isMine) {
+			inPush = true;
+			pTime = Time.time;
+			pw = body.gameObject.GetComponent<MyGod>();
+		}
+		//photonView.RPC("pushGod", PhotonTargets.Others, );
 	}
+
 
 	void Move(Vector3 dir) {
 		moveDir = dir;
@@ -103,6 +145,17 @@ public class MyHero : Photon.MonoBehaviour {
 	}
 
 	void UpdateMove(){
+
+		if(Time.time-pTime >= 0.1f && inPush){
+			inPush = false;
+			var objs = new object[4];
+			objs[0] = pw.myId;
+			objs[1] = pw.transform.position.x;
+			objs[2] = pw.transform.position.y;
+			objs[3] = pw.transform.position.z;
+			photonView.RPC("pushGod", PhotonTargets.Others, objs);
+		}
+
 		//Debug.Log("move dir "+moveDir.ToString());
 		controller.SimpleMove(moveDir);
 	}
@@ -110,11 +163,12 @@ public class MyHero : Photon.MonoBehaviour {
 	//show data by rpc
 	[RPC]
 	void finishFight(int vid, int dam) {
+		//ms.targetViewId = vid;
 		var p = PhotonView.Find(vid);
 		if(p) {
 			var h = p.GetComponent<MyStatus>();
 			if(h){
-				h.getDamage(dam);
+				h.getDamage(gameObject, dam);
 			}
 		}
 		targetViewId = vid;
@@ -210,6 +264,10 @@ public class MyHero : Photon.MonoBehaviour {
 				objs[1] = takedamage;
 				photonView.RPC("finishFight", PhotonTargets.Others, objs);
 				//listObjHitted.Add(hit.gameObject);
+				if(status.HP <= 0 && PhotonNetwork.isMasterClient ){
+					//if(PhotonNetwork.isMasterClient)
+					status.Dead();
+				}
 			}
 
 			//orbit target object shake camera 
