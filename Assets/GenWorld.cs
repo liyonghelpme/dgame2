@@ -265,6 +265,9 @@ public class GenWorld : Photon.MonoBehaviour {
 		GUILayout.BeginArea(new Rect((Screen.width-400)/2, (Screen.height-300)/2, 400, 300));
 		GUILayout.Label("Connecting to Game server.");
 		GUILayout.Label("Please wait for a while");
+		if(GUILayout.Button("ReLoad?")) {
+			Application.LoadLevel(Application.loadedLevel);
+		}
 		GUILayout.EndArea();
 	}
 	void OnCreatedRoom() {
@@ -696,8 +699,8 @@ public class GenWorld : Photon.MonoBehaviour {
 
 
 			timeStamp = Time.time;
-			var row = Random.Range(Mathf.Max(0, pcol-3), Mathf.Min(Width, pcol+3));
-			var col = Random.Range(Mathf.Max(0, prow-3), Mathf.Min(Height, prow+3));
+			var row = Random.Range(Mathf.Max(1, pcol-3), Mathf.Min(Width, pcol+3));
+			var col = Random.Range(Mathf.Max(1, prow-3), Mathf.Min(Height, prow+3));
 			Vector3 v = new Vector3(row*10*2, 1, col*10*2);
 			//room exist but long path perhaps not exist
 			var rd = Random.Range(0, zombies.Length);
