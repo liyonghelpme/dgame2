@@ -34,7 +34,7 @@ public class GenWorld : Photon.MonoBehaviour {
 	public bool start = true;
 	public string [] zombies;
 
-	private int eneCount = 20;
+	private int eneCount = 1;
 	private float timeStamp = 0;
 	private float timeSpawn = 3;
 	public AdMobPlugin ad;
@@ -699,8 +699,8 @@ public class GenWorld : Photon.MonoBehaviour {
 
 
 			timeStamp = Time.time;
-			var row = Random.Range(Mathf.Max(1, pcol-3), Mathf.Min(Width, pcol+3));
-			var col = Random.Range(Mathf.Max(1, prow-3), Mathf.Min(Height, prow+3));
+			var row = Random.Range(Mathf.Max(0, pcol-1), Mathf.Min(Width, pcol+1));
+			var col = Random.Range(Mathf.Max(0, prow-1), Mathf.Min(Height, prow+1));
 			Vector3 v = new Vector3(row*10*2, 1, col*10*2);
 			//room exist but long path perhaps not exist
 			var rd = Random.Range(0, zombies.Length);

@@ -23,6 +23,7 @@ public class MyHero : Photon.MonoBehaviour {
 	//bool diddamage = false;
 	string aniName = "attack1";
 
+	//attack range
 	private float Radius = 1;
 	private HashSet<GameObject> listObjHitted = new HashSet<GameObject>();
 	private float Direction = 0.5f;
@@ -37,6 +38,8 @@ public class MyHero : Photon.MonoBehaviour {
 	PhotonView pv;
 	CharacterNet cn;
 	MyStatus ms;
+
+	//int wp = 0;
 	public void Relive() {
 		realRelive();
 		photonView.RPC("getUp", PhotonTargets.Others);
@@ -51,7 +54,9 @@ public class MyHero : Photon.MonoBehaviour {
 		attacking = false;
 		showSelf();
 		tarPos = transform.position;
+		controller.enabled = true;
 	}
+	public Transform rightHand;
 
 	//Player HP increase to max
 	//how to reflect other player HP change?
@@ -80,6 +85,28 @@ public class MyHero : Photon.MonoBehaviour {
 		controller = GetComponent<CharacterController>();
 		gameObject.animation.CrossFade("idle");
 		tarPos = transform.position;
+		initWeapon();
+	}
+	void initWeapon() {
+		if(ms.wp == 0) {
+			var sw = (GameObject)Instantiate(Resources.Load("Sword"));
+			//var ch = transform.Find("weaponPoint");
+			if(rightHand) {
+				if(rightHand.childCount > 0) {
+					var c = rightHand.GetChild(0);
+					GameObject.Destroy(c.gameObject);
+				}
+
+				//Debug.Log("child find "+ch.ToString());
+				Vector3 op = sw.transform.localPosition;
+				Vector3 os = sw.transform.localScale;
+				Quaternion oq = sw.transform.localRotation;
+				sw.transform.parent = rightHand;
+				sw.transform.localPosition = op;
+				sw.transform.localRotation = oq;
+				sw.transform.localScale = os;
+			}
+		}
 	}
 	// Use this for initialization
 	void Start () {
@@ -98,7 +125,56 @@ public class MyHero : Photon.MonoBehaviour {
 	bool inPush = false;
 	float pTime = 0;
 	MyGod pw;
+	[HideInInspector]
+	public float axeTime = 0;
+	public void getAxe(GameObject axe){
+		Debug.Log("getAxe right Hand");
+		if(rightHand) {
+			ms.wp = 1;
+			Radius = 2.0f;
+			axeTime = Time.time;
+			GameObject.Destroy(rightHand.GetChild(0).gameObject);
+
+			var ch = axe.transform.GetChild(0);
+			ch.animation.enabled = false;
+			 
+			ch.transform.parent = rightHand;
+			ch.transform.localPosition = Vector3.zero;
+			ch.transform.localRotation = Quaternion.identity;
+			ch.transform.localScale = new Vector3(0.4f, 0.4f, 0.4f);
+
+
+			var col = (GameObject)Instantiate(Resources.Load("CoinCollectFlash"));
+			col.transform.position = axe.transform.position;
+			GameObject.Destroy(col, 1);
+			GameObject.Destroy(axe);
+		}
+	}
+
+	public void getCoin(GameObject c) {
+		coin++;
+		var col = (GameObject)Instantiate(Resources.Load("CoinCollectFlash"));
+		col.transform.position = c.transform.position;
+		GameObject.Destroy(col, 1);
+		GameObject.Destroy(c);
+	}
+	[HideInInspector]
+	public int coin = 0;
 	void OnControllerColliderHit(ControllerColliderHit hit){
+		Debug.Log("collider object "+hit.collider.tag);
+		if(hit.collider.tag == "Item") {
+			return;
+			/*
+			coin++;
+			var col = (GameObject)Instantiate(Resources.Load("CoinCollectFlash"));
+			col.transform.position = hit.collider.transform.position;
+			GameObject.Destroy(col, 1);
+			GameObject.Destroy(hit.collider.gameObject);
+			return;
+			*/
+		}
+
+
 		var body = hit.collider.attachedRigidbody;
 		if(body == null) return;
 
@@ -146,7 +222,7 @@ public class MyHero : Photon.MonoBehaviour {
 
 	void UpdateMove(){
 
-		if(Time.time-pTime >= 0.1f && inPush){
+		if(Time.time-pTime >= 0.1f && inPush && pw != null){
 			inPush = false;
 			var objs = new object[4];
 			objs[0] = pw.myId;
@@ -192,6 +268,7 @@ public class MyHero : Photon.MonoBehaviour {
 		//block idle animation
 		animation[aniName].layer = 2;
 		animation[aniName].blendMode = AnimationBlendMode.Blend;
+		//if(ms.wp == 0)
 		animation[aniName].speed = 2;
 	}
 
@@ -307,7 +384,7 @@ public class MyHero : Photon.MonoBehaviour {
 	}
 	private GameObject objectTarget;
 	// Update is called once per frame
-	void Update () {
+	void Update() {
 		if(!pv.isMine) {
 			ms.ShowMove();
 			return;
@@ -321,6 +398,11 @@ public class MyHero : Photon.MonoBehaviour {
 			return;
 		if(!gw.isFinish)
 			return;
+		if(ms.wp == 1 && Time.time-axeTime > 20.0f) {
+			ms.wp = 0;
+			Radius = 1;
+			initWeapon();
+		}
 		var direction = Vector3.zero;
 		if(Input.GetMouseButtonDown(0)){
 			float dist;
@@ -341,7 +423,7 @@ public class MyHero : Photon.MonoBehaviour {
 
 		if(!attacking && !animation[aniName].enabled) {
 			bool findAttack = false;
-			var colliders = Physics.OverlapSphere(this.transform.position, 2);
+			var colliders = Physics.OverlapSphere(this.transform.position, Radius);
 			foreach(var hit in colliders){
 				if(!hit || hit.gameObject.tag != "Enemy")
 					continue;

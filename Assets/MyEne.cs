@@ -29,6 +29,7 @@ public class MyEne : Photon.MonoBehaviour {
 
 	private HashSet<GameObject> listedHit = new HashSet<GameObject>();
 	public GameObject projectTile;
+
 	//
 	// Use this for initialization
 	void Awake() {

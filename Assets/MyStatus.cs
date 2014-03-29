@@ -18,6 +18,12 @@ public class MyStatus : Photon.MonoBehaviour {
 	[HideInInspector]
 	public int Defend = 0;
 
+	[HideInInspector]
+	public int wp = 0;
+
+	//[HideInInspector]
+	//public float Radius = 1;
+
 	private GameObject killer;
 	private Vector3 velocityDamage = Vector3.zero;
 	[HideInInspector]
@@ -228,9 +234,22 @@ public class MyStatus : Photon.MonoBehaviour {
 		var rc = GetComponentsInChildren<Renderer>();
 		foreach(var i in rc)
 			i.enabled = false;
+		var cc = GetComponent<CharacterController>();
+		if(cc != null)
+			cc.enabled = false;
 	}
 	//TODO: Dead
 
+	void makeCoin() {
+		var coin = (GameObject)Instantiate(Resources.Load("Coin"));
+		coin.transform.position = transform.position;
+
+	}
+	void makeAxe() {
+		var axe = (GameObject)Instantiate(Resources.Load("axeAni"));
+		axe.transform.position = transform.position+new Vector3(Random.value*0.5f-1, 0, Random.value*0.5f-1);
+
+	}
 	//Master Zombie killed by master player
 	public void Dead() {
 		if(isDead)
@@ -247,8 +266,22 @@ public class MyStatus : Photon.MonoBehaviour {
 			obj[0] = -1;
 
 		//only Master can change state
-		if(PhotonNetwork.isMasterClient)
+		if(PhotonNetwork.isMasterClient) {
 			photonView.RPC("killMe", PhotonTargets.Others, obj);
+			//zombie show coin pick coin
+			if(!isHero) {
+				var rd = Random.Range(0, 2);
+
+				if(rd == 0) {
+					makeCoin();
+					photonView.RPC("showCoin", PhotonTargets.Others);
+				} 
+				rd = Random.Range(0, 10);
+				if(rd == 0) {
+					makeAxe();
+				}
+			}
+		}
 		//}
 
 		isDead = true;
@@ -379,6 +412,10 @@ public class MyStatus : Photon.MonoBehaviour {
 		if(SP > SPmax)
 			SP = SPmax;
 		Damage = (STR*2)+BaseDamage;
+		//2 rate axe
+		if(wp == 1) {
+			Damage *= 2;
+		}
 		Defend = BaseDefend;
 
 
